@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 import java.io.File
 
-data class Sample(val t: Long, val cpu: Float, val temp: Float, val ram: Float)
+data class Sample(val t: Long, val cpu: Float, val temp: Float, val ram: Float, val fps: Float = -1f)
 
 object Stats {
     private const val MAX = 1800 // 1800 sampel x 2 detik = 1 jam
@@ -73,13 +73,13 @@ object Stats {
             tempSource = "Baterai"
         }
         val cpu = (cpuFromProc() ?: cpuFromFreq() ?: 0f).coerceIn(0f, 100f)
-        return Sample(System.currentTimeMillis(), cpu, temp, ram)
+        return Sample(System.currentTimeMillis(), cpu, temp, ram, Fps.value)
     }
 
     fun add(c: Context, s: Sample) {
         history.add(s)
         if (history.size > MAX) history.removeAt(0)
-        try { File(c.filesDir, "history.csv").appendText("${s.t},${s.cpu},${s.temp},${s.ram}\n") } catch (_: Exception) {}
+        try { File(c.filesDir, "history.csv").appendText("${s.t},${s.cpu},${s.temp},${s.ram},${s.fps}\n") } catch (_: Exception) {}
     }
 
     fun load(c: Context) {
@@ -89,7 +89,7 @@ object Stats {
             val lines = f.readLines().takeLast(MAX)
             lines.forEach {
                 val p = it.split(",")
-                if (p.size == 4) history.add(Sample(p[0].toLong(), p[1].toFloat(), p[2].toFloat(), p[3].toFloat()))
+                if (p.size >= 4) history.add(Sample(p[0].toLong(), p[1].toFloat(), p[2].toFloat(), p[3].toFloat(), p.getOrNull(4)?.toFloatOrNull() ?: -1f))
             }
             if (lines.isNotEmpty()) f.writeText(lines.joinToString("\n") + "\n")
         } catch (_: Exception) {}

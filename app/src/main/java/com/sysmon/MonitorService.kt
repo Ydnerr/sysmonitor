@@ -23,7 +23,8 @@ class MonitorService : Service() {
         override fun run() {
             val s = Stats.read(this@MonitorService)
             Stats.add(this@MonitorService, s)
-            tv?.text = String.format("CPU %.0f%%\n%s %.1f°C\nRAM %.0f%%", s.cpu, Stats.tempSource, s.temp, s.ram)
+            val f = if (s.fps >= 0) String.format("%.0f", s.fps) else "--"
+            tv?.text = String.format("FPS %s\nCPU %.0f%%\n%s %.1f°C\nRAM %.0f%%", f, s.cpu, Stats.tempSource, s.temp, s.ram)
             h.postDelayed(this, 2000)
         }
     }
@@ -39,6 +40,7 @@ class MonitorService : Service() {
             .setContentTitle("SysMonitor aktif")
             .setSmallIcon(android.R.drawable.ic_menu_info_details).build())
         showOverlay()
+        Fps.start()
         h.post(tick)
     }
 
@@ -72,6 +74,7 @@ class MonitorService : Service() {
 
     override fun onDestroy() {
         h.removeCallbacks(tick)
+        Fps.stop()
         tv?.let { wm?.removeView(it) }
         super.onDestroy()
     }

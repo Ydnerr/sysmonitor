@@ -6,7 +6,7 @@ import android.view.View
 
 class GraphView(
     ctx: Context, private val title: String, private val color: Int,
-    private val fixed100: Boolean, private val unit: String
+    private val fixed100: Boolean, private val unit: String, private val fromZero: Boolean = false
 ) : View(ctx) {
     var data: List<Float> = emptyList()
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -26,7 +26,7 @@ class GraphView(
         if (data.size > 1) {
             var lo = 0f; var hi = 100f
             if (!fixed100) {
-                lo = (data.min() - 2f); hi = (data.max() + 2f)
+                lo = if (fromZero) 0f else data.min() - 2f; hi = data.max() + 2f
                 if (hi - lo < 10f) hi = lo + 10f
             }
             val path = Path()
