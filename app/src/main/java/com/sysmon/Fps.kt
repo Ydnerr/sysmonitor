@@ -8,7 +8,7 @@ object Fps {
     private val skip = listOf("StatusBar", "NavigationBar", "ScreenDecor", "InputMethod", "Wallpaper",
         "Background for", "Bounds for", "com.sysmon", "systemui", "Dim Layer", "WindowToken", "ImeContainer", "Letterbox", "Splash")
 
-    private fun sh(vararg cmd: String): List<String>? = try {
+    fun sh(vararg cmd: String): List<String>? = try {
         val p = ProcessBuilder(*cmd).redirectErrorStream(true).start()
         val out = p.inputStream.bufferedReader().readLines()
         p.waitFor()

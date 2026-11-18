@@ -13,6 +13,7 @@ object Stats {
     private const val MAX = 1800 // 1800 sampel x 2 detik = 1 jam
     val history = ArrayList<Sample>()
     var tempSource = "Baterai"
+    var cpuSource = "-"
     private var lastTotal = 0L
     private var lastIdle = 0L
 
@@ -32,7 +33,32 @@ object Stats {
         return if (!first && dt > 0) 100f * (dt - di) / dt else null
     }
 
-    // Cara 2 (fallback): estimasi beban dari rasio frekuensi sekarang / frekuensi max tiap core
+    // Cara 2: waktu idle tiap core dari cpuidle (akurat kalau kernel mengeksposnya)
+    private val idleMap = HashMap<Int, Long>()
+    private var wallPrev = 0L
+    private fun cpuFromIdle(): Float? {
+        val now = System.nanoTime() / 1000
+        val dtWall = now - wallPrev
+        var sum = 0f; var n = 0
+        for (i in 0 until Runtime.getRuntime().availableProcessors()) {
+            val states = File("/sys/devices/system/cpu/cpu$i/cpuidle").listFiles { f -> f.name.startsWith("state") } ?: continue
+            var idle = 0L; var ok = false
+            for (s in states) {
+                val t = rd("${s.path}/time")?.toLongOrNull()
+                if (t != null) { idle += t; ok = true }
+            }
+            if (!ok) continue
+            val prev = idleMap.put(i, idle)
+            if (prev != null && wallPrev != 0L && dtWall > 0) {
+                val busy = 1f - (idle - prev).toFloat() / dtWall
+                if (busy in -0.05f..1.05f) { sum += busy.coerceIn(0f, 1f); n++ }
+            }
+        }
+        wallPrev = now
+        return if (n > 0) 100f * sum / n else null
+    }
+
+    // Cara 3 (fallback): estimasi beban dari rasio frekuensi sekarang / frekuensi max tiap core
     private fun cpuFromFreq(): Float? {
         var sum = 0f; var n = 0
         for (i in 0 until Runtime.getRuntime().availableProcessors()) {
@@ -72,7 +98,15 @@ object Stats {
             temp = (i?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10f
             tempSource = "Baterai"
         }
-        val cpu = (cpuFromProc() ?: cpuFromFreq() ?: 0f).coerceIn(0f, 100f)
+        val proc = cpuFromProc()
+        val idle = cpuFromIdle()
+        val dump = CpuInfo.value
+        val cpu: Float = when {
+            proc != null -> { cpuSource = "proc/stat"; proc }
+            dump >= 0f -> { cpuSource = "dumpsys"; dump }
+            idle != null -> { cpuSource = "cpuidle"; idle }
+            else -> { cpuSource = "estimasi frekuensi"; cpuFromFreq() ?: 0f }
+        }.coerceIn(0f, 100f)
         return Sample(System.currentTimeMillis(), cpu, temp, ram, Fps.value)
     }
 

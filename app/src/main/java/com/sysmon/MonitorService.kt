@@ -41,6 +41,7 @@ class MonitorService : Service() {
             .setSmallIcon(android.R.drawable.ic_menu_info_details).build())
         showOverlay()
         Fps.start()
+        CpuInfo.start()
         h.post(tick)
     }
 
@@ -75,6 +76,7 @@ class MonitorService : Service() {
     override fun onDestroy() {
         h.removeCallbacks(tick)
         Fps.stop()
+        CpuInfo.stop()
         tv?.let { wm?.removeView(it) }
         super.onDestroy()
     }

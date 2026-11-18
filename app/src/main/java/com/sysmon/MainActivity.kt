@@ -36,7 +36,7 @@ class MainActivity : Activity() {
             listOf(gFps, gCpu, gTemp, gRam).forEach { it.invalidate() }
             val fpsInfo = if (Fps.value >= 0) "FPS aktif" else "FPS belum tersedia (butuh izin DUMP via ADB)"
             info.text = if (hs.isEmpty()) "Belum ada data. Tekan MULAI."
-                else "${hs.size} sampel (~${hs.size * 2 / 60} menit) • suhu: ${Stats.tempSource} • $fpsInfo"
+                else "${hs.size} sampel (~${hs.size * 2 / 60} menit) • suhu: ${Stats.tempSource} • CPU: ${Stats.cpuSource} • $fpsInfo"
             h.postDelayed(this, 2000)
         }
     }
